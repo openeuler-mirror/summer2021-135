@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import defaultdict
 
 # (1) Given an RPM package, identify all Python scripts in the RPM package
 print("Task 1:")
@@ -35,13 +36,18 @@ else:
             print(python_file[i])
         else:
             print(python_file[i], end=" ")
+
 # (2) Identify system services with startup, shutdown, and restart operations in the script
 # for file in python_file:
 print("--" * 100)
 print("Task 2:")
-start_dic = {}
-restart_dic = {}
-stop_dic = {}
+start_command = defaultdict(list)
+# start_command_dir = []
+restart_command = defaultdict(list)
+# restart_command_dir = []
+stop_command = defaultdict(list)
+# stop_command_dir = []
+
 for i in range(len(python_file)):
     with open(python_root[i] + '/' + python_file[i], 'r') as f:
         lines = f.readlines()
@@ -49,30 +55,74 @@ for i in range(len(python_file)):
             # if "systemctl" in line:
             #     print(python_file[i] + '--------' + line)
             if "systemctl restart" in line:
-                restart_dic[python_root[i] + '/' + python_file[i]] = line.strip()
+                restart_command[python_root[i] + '/' + python_file[i]].append(line.strip())
+                # restart_command.append(line.strip())
+                # restart_command_dir.append(python_root[i] + '/' + python_file[i])
+                # restart_dic[python_root[i] + '/' + python_file[i]] = line.strip()
             if "systemctl stop" in line or "systemctl disable" in line:
-                stop_dic[python_root[i] + '/' + python_file[i]] = line.strip()
+                stop_command[python_root[i] + '/' + python_file[i]].append(line.strip())
+                # stop_command.append(line.strip())
+                # stop_command_dir.append(python_root[i] + '/' + python_file[i])
+                # stop_dic[python_root[i] + '/' + python_file[i]] = line.strip()
             if "systemctl start" in line or "systemctl enable" in line:
-                start_dic[python_root[i] + '/' + python_file[i]] = line.strip()
-if bool(start_dic):
+                start_command[python_root[i] + '/' + python_file[i]].append(line.strip())
+                # start_command.append(line.strip())
+                # start_command_dir.append(python_root[i] + '/' + python_file[i])
+                # start_dic[python_root[i] + '/' + python_file[i]] = line.strip()
+if start_command:
     print("The system services with startup operations in the script include:")
-    for key in start_dic:
-        print(start_dic[key] + "----->>>>>>>" + key)
+    for dir in start_command:
+        for command in start_command[dir]:
+            print(command + "----->>>>>>>" + dir)
 else:
     print("No system services related to startup operations were found in all scripts.")
 print()
-if bool(restart_dic):
+if restart_command:
     print("The system services with restart operations in the script include:")
-    for key in restart_dic:
-        print(restart_dic[key] + "----->>>>>>>"  + key)
+    for dir in restart_command:
+        for command in restart_command[dir]:
+            print(command + "----->>>>>>>" + dir)
 else:
     print("No system services related to restart operations were found in all scripts")
 print()
-if bool(stop_dic):
+if stop_command:
     print("The system services with shutdown operations in the script include:")
-    for key in stop_dic:
-        print(stop_dic[key] + "----->>>>>>>"  + key)
+    for dir in stop_command:
+        for command in stop_command[dir]:
+            print(command + "----->>>>>>>" + dir)
 else:
     print("No system services related to shutdown operations were found in all scripts")
+
 # (3) Identify the system commands called by the script
+print("--" * 100)
+print("Task 3:")
+sys_command = defaultdict(list)
+sys_command_dir = []
+for i in range(len(python_file)):
+    with open(python_root[i] + '/' + python_file[i], 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if "os.system" in line or "os.popen" in line or "commands" in line or "subprocess" in line:
+                if line.find("#") == -1 or (line.find('#') != -1 and line.find('os.system') != -1 and line.index('#') > line.index("os.system"))\
+                        or (line.find('#') != -1 and line.find('os.popen') != -1 and line.index('#') > line.index("os.popen"))\
+                        or (line.find('#') != -1 and line.find('commands') != -1 and line.index('#') > line.index("commands"))\
+                        or (line.find('#') != -1 and line.find('subprocess') != -1 and line.index('#') > line.index("subprocess")):
+                    # print(python_root[i] + '/' + python_file[i] + "        " + line.strip())
+                    # sys_command[python_root[i] + '/' + python_file[i]] = line.strip()
+                    sys_command[python_root[i] + '/' + python_file[i]].append(line.strip())
+                    # sys_command.append(line.strip())
+                    # sys_command_dir.append(python_root[i] + '/' + python_file[i])
+if sys_command:
+    print("The system calls in the script include:")
+    for dir in sys_command:
+        for command in sys_command[dir]:
+            print(command + "----->>>>>>>" + dir)
+        # print(dir[0])
+        # for command in dir:
+        #     print(command)
+    # for i in range(len(sys_command)):
+    #     print(sys_command[i] + "----->>>>>>>" + sys_command_dir[i])
+
+else:
+    print("No system commands called were found in all scripts")
 # (4) Identify whether the command is provided by the RPM software package or the operating system
