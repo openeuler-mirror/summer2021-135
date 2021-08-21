@@ -2,37 +2,18 @@ import os
 import sys
 import re
 from collections import defaultdict
-
-# match the (
-def match(line):
-    brackets_num = 0
-    quotation_num = 0
-    for l in line:
-        if l == "\"":
-            quotation_num = quotation_num + 1
-        if l == "(" and quotation_num % 2 == 0:
-            brackets_num = brackets_num + 1
-        if l == ")" and quotation_num % 2 == 0:
-            brackets_num = brackets_num - 1
-    if brackets_num == 0:
-        return True
-    else:
-        return False
+from utils import match
+from utils import unzip
 
 # print(match("print(\"Can not find pr)oper test-type for %s.\" % device.get_name())"))
 def Task_1():
     # (1) Given an RPM package, identify all Python scripts in the RPM package
     print("Task 1:")
-    def unzip(file_dir):
-        for file in os.listdir(file_dir):
-            # print(file)
-            if file.endswith(".rpm"):
-                # os.system('rpm2cpio nginx-1.12.2-1.el7_4.ngx.x86_64.rpm | cpio -div')
-                os.system('rpm2cpio {} | cpio -div'.format(file))
-                # print(file)
+    unzip(os.getcwd())
     python_file = []
     python_root = []
     python_dirs = []
+    abs_file = []
     def sub_file(file_dir):
         # path, subdir, subfile
         for root, dirs, files in os.walk(file_dir):
@@ -40,7 +21,7 @@ def Task_1():
             # print(dirs)
             # print(files)
             for file in files:
-                if file.endswith(".py") and file != os.path.basename(sys.argv[0]):
+                if file.endswith(".py") and file != os.path.basename(sys.argv[0]) and file != "utils.py":
                     python_file.append(file)
                     python_root.append(root)
                     python_dirs.append(dirs)
@@ -51,35 +32,29 @@ def Task_1():
     else:
         print("The scripts in the RPM package are:")
         for i in range(len(python_file)):
-            if i % 5 == 4 or i == len(python_file) - 1:
-                print(python_file[i])
-            else:
-                print(python_file[i], end=" ")
-    return python_root, python_file
+            # if i % 5 == 4 or i == len(python_file) - 1:
+            abs_file.append(os.path.join(python_root[i] + "/" + python_file[i]))
+            print(abs_file[i])
+            # else:
+            #     print(python_root[i] + python_file[i], end=" ")
+    return abs_file
 
 
-def Task_2(python_root, python_file):
+def Task_2(abs_file):
     # (2) Identify system servi`ces with startup, shutdown, and restart operations in the script
-    # for file in python_file:
     print("--" * 100)
     print("Task 2:")
     start_command = defaultdict(list)
-    # start_command_dir = []
     restart_command = defaultdict(list)
-    # restart_command_dir = []
     stop_command = defaultdict(list)
-    # stop_command_dir = []
-    for i in range(len(python_file)):
-        with open(python_root[i] + '/' + python_file[i], 'r') as f:
+    for i in range(len(abs_file)):
+        with open(abs_file[i], 'r') as f:
             lines = f.readlines()
-            # lines = iter(lines)
             pass_num = 0
             for index in range(len(lines)):
                 if pass_num > 0:
                     pass_num = pass_num - 1
                     continue
-                # if "systemctl" in line:
-                #     print(python_file[i] + '--------' + line)
                 line = lines[index]
                 string = line.strip()
                 # print(i, index)
@@ -96,20 +71,39 @@ def Task_2(python_root, python_file):
                     string = string + lines[index + 1].strip()
                     index = index + 1
                     pass_num = pass_num + 1
-                pattern = re.compile('"(.*)"')
-                str_rel = pattern.findall(string)
                 if "systemctl restart" in line:
-                    restart_command[python_root[i] + '/' + python_file[i]].append(str_rel[0])
+                    pattern1 = re.compile('"(.*)"')
+                    str_rel1 = pattern1.findall(string)
+                    pattern2 = re.compile("'(.*)'")
+                    str_rel2 = pattern2.findall(string)
+                    if str_rel1 != [] and str_rel2 == []:
+                        restart_command[abs_file[i]].append(str_rel1[0])
+                    if str_rel2 != [] and str_rel1 == []:
+                        restart_command[abs_file[i]].append(str_rel2[0])
                     # restart_command.append(line.strip())
                     # restart_command_dir.append(python_root[i] + '/' + python_file[i])
                      # restart_dic[python_root[i] + '/' + python_file[i]] = line.strip()
                 if "systemctl stop" in line or "systemctl disable" in line:
-                    stop_command[python_root[i] + '/' + python_file[i]].append(str_rel[0])
+                    pattern1 = re.compile('"(.*)"')
+                    str_rel1 = pattern1.findall(string)
+                    pattern2 = re.compile("'(.*)'")
+                    str_rel2 = pattern2.findall(string)
+                    if str_rel1 != [] and str_rel2 == []:
+                        stop_command[abs_file[i]].append(str_rel1[0])
+                    if str_rel2 != [] and str_rel1 == []:
+                        stop_command[abs_file[i]].append(str_rel2[0])
                     # stop_command.append(line.strip())
                     # stop_command_dir.append(python_root[i] + '/' + python_file[i])
                     # stop_dic[python_root[i] + '/' + python_file[i]] = line.strip()
                 if "systemctl start" in line or "systemctl enable" in line:
-                    start_command[python_root[i] + '/' + python_file[i]].append(str_rel[0])
+                    pattern1 = re.compile('"(.*)"')
+                    str_rel1 = pattern1.findall(string)
+                    pattern2 = re.compile("'(.*)'")
+                    str_rel2 = pattern2.findall(string)
+                    if str_rel1 != [] and str_rel2 == []:
+                        start_command[abs_file[i]].append(str_rel1[0])
+                    if str_rel2 != [] and str_rel1 == []:
+                        start_command[abs_file[i]].append(str_rel2[0])
                     # start_command.append(line.strip())
                     # start_command_dir.append(python_root[i] + '/' + python_file[i])
                     # start_dic[python_root[i] + '/' + python_file[i]] = line.strip()
@@ -138,14 +132,14 @@ def Task_2(python_root, python_file):
         print("No system services related to shutdown operations were found in all scripts")
 
 
-def Task_3(python_root, python_file):
+def Task_3(abs_file):
     # (3) Identify the system commands called by the script
     print("--" * 100)
     print("Task 3:")
     sys_command = defaultdict(list)
     sys_command_dir = []
-    for i in range(len(python_file)):
-        with open(python_root[i] + '/' + python_file[i], 'r') as f:
+    for i in range(len(abs_file)):
+        with open(abs_file[i], 'r') as f:
             lines = f.readlines()
             pass_num = 0
             for index in range(len(lines)):
@@ -173,7 +167,7 @@ def Task_3(python_root, python_file):
                             or (line.find('#') != -1 and line.find('subprocess') != -1 and line.index('#') > line.index("subprocess")):
                         # print(python_root[i] + '/' + python_file[i] + "        " + line.strip())
                         # sys_command[python_root[i] + '/' + python_file[i]] = line.strip()
-                        sys_command[python_root[i] + '/' + python_file[i]].append(line.strip())
+                        sys_command[abs_file[i]].append(line.strip())
                         # sys_command.append(line.strip())
                         # sys_command_dir.append(python_root[i] + '/' + python_file[i])
     if sys_command:
@@ -211,8 +205,7 @@ def Task_4(sys_command):
         # if 'memtester\n' in os_commond:
         #     print("yes")
         for os_commond in os_commonds:
-            os_commond = os_commond.replace('\n', '')
-            command_task4.append(os_commond)
+            command_task4.append(os_commond.strip())
             # print(os_commond)
     # print(sys_command)
     command_task3 = []
@@ -228,6 +221,7 @@ def Task_4(sys_command):
             word_list = command_string.split(" ")
             if word_list[0].endswith("\""):
                 word_list[0] = eval(word_list[0])
+
             else:
                 word_list[0] = eval(word_list[0] + "\"")
             # print(word_list)
@@ -243,7 +237,7 @@ def Task_4(sys_command):
 
 
 if __name__ == '__main__':
-    python_root, python_file = Task_1()
-    Task_2(python_root, python_file)
-    sys_command = Task_3(python_root, python_file)
+    abs_file = Task_1()
+    Task_2(abs_file)
+    sys_command = Task_3(abs_file)
     Task_4(sys_command)
