@@ -16,10 +16,15 @@ def match(line):
     else:
         return False
 
-def unzip(file_dir):
-    for file in os.listdir(file_dir):
-        # print(file)
-        if file.endswith(".rpm"):
-            # os.system('rpm2cpio nginx-1.12.2-1.el7_4.ngx.x86_64.rpm | cpio -div')
-            os.system('rpm2cpio {} | cpio -div'.format(file))
-            # print(file)
+def unzip(file):
+    # for file in os.listdir(file_dir):
+    #     # print(file)
+    #     if file.endswith(".rpm"):
+    #         # os.system('rpm2cpio nginx-1.12.2-1.el7_4.ngx.x86_64.rpm | cpio -div')
+    #         os.system('rpm2cpio {} | cpio -div'.format(file))
+    #         # print(file)
+    os.system('mkdir {}'.format(file.replace('.rpm', "")))
+    os.system('cp {} {}'.format(file, file.replace('.rpm', "")))
+    os.chdir(file.replace('.rpm', ""))
+    os.system('rpm2cpio {} | cpio -div'.format(file))
+    os.chdir('../')
